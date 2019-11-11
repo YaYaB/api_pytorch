@@ -3,8 +3,14 @@ import torch
 from torchvision import transforms
 
 
-def load_model():
-    model = vision_models.resnet18(pretrained=True)
+def load_model(model_name):
+    model_ = {
+        "shufflenetv2_x2.0": vision_models.shufflenet_v2_x2_0,
+        "shufflenetv2_x1.5": vision_models.shufflenet_v2_x1_5,
+        "shufflenet_v2_x1_0": vision_models.shufflenet_v2_x1_0,
+        "shufflenetv2_x0.5": vision_models.shufflenet_v2_x0_5
+    }
+    model = model_[model_name](pretrained=True)
     model.eval()
 
     model = {

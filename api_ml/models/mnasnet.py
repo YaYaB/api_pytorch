@@ -3,8 +3,15 @@ import torch
 from torchvision import transforms
 
 
-def load_model():
-    model = vision_models.resnet18(pretrained=True)
+def load_model(model_name):
+    model_ = {
+        "mnasnet0_5": vision_models.mnasnet0_5,
+        "mnasnet0_75": vision_models.mnasnet0_75,
+        "mnasnet1_0": vision_models.mnasnet1_0,
+        "mnasnet1_3": vision_models.mnasnet1_3
+    }
+
+    model = model_[model_name](pretrained=True)
     model.eval()
 
     model = {

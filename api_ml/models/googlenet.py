@@ -4,7 +4,7 @@ from torchvision import transforms
 
 
 def load_model():
-    model = vision_models.resnet18(pretrained=True)
+    model = vision_models.googlenet(pretrained=True)
     model.eval()
 
     model = {

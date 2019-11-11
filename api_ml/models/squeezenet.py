@@ -3,8 +3,13 @@ import torch
 from torchvision import transforms
 
 
-def load_model():
-    model = vision_models.resnet18(pretrained=True)
+def load_model(model_name):
+    model_ = {
+        "squeezenet1_0": vision_models.squeezenet1_0,
+        "squeezenet1_1": vision_models.squeezenet1_1
+    }
+
+    model = model_[model_name](pretrained=True)
     model.eval()
 
     model = {

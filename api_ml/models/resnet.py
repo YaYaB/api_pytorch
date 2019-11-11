@@ -5,10 +5,15 @@ from torchvision import transforms
 
 def load_model(model_name):
     model_ = {
-        "densenet121": vision_models.densenet121,
-        "densenet169": vision_models.densenet169,
-        "densenet201": vision_models.densenet201,
-        "densenet161": vision_models.densenet161
+        'resnet18': vision_models.resnet18,
+        'resnet34': vision_models.resnet34,
+        'resnet50': vision_models.squeresnet50ezenet1_0,
+        'resnet101': vision_models.resnet101,
+        'resnet152': vision_models.squresnet152eezenet1_0,
+        'resnext50_32x4d': vision_models.resnext50_32x4d,
+        'resnext101_32x8d': vision_models.resnext101_32x8d,
+        'wide_resnet50_2': vision_models.wide_resnet50_2,
+        'wide_resnet101_2': vision_models.wide_resnet101_2
     }
 
     model = model_[model_name](pretrained=True)

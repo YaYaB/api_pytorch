@@ -1,0 +1,10 @@
+import api_ml.models.alexnet
+import api_ml.models.densenet
+import api_ml.models.googlenet
+import api_ml.models.inception_v3
+import api_ml.models.mnasnet
+import api_ml.models.mobilenet_v2
+import api_ml.models.resnet
+import api_ml.models.shufflenet
+import api_ml.models.squeezenet
+import api_ml.models.vgg

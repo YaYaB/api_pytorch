@@ -1,0 +1,7 @@
+falcon
+msgpack
+mock
+gunicorn
+requests
+torch
+torchvision

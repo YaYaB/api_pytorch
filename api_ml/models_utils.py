@@ -5,7 +5,7 @@ import requests
 import falcon
 import json
 
-from api_ml.utils import load_model, batchify
+from api_ml.models.utils import load_model, batchify
 import torch
 
 
@@ -100,15 +100,15 @@ class LoadModel(Origin):
         json_input = self.validate_load_model(req)
         model_name = json_input["model_name"]
         service_name = json_input["service_name"]
-        try:
-            # Load model
-            model = load_model(model_name)
-            success = self.services.create_service(service_name, model)
-            if not success:
-                raise falcon.HTTP_CONFLICT()
-        except Exception as e:
-            # TODO add logging
-            raise falcon.HTTPNotFound()
+
+        # Load model
+        model = load_model(model_name)
+        print(model)
+        if model is False:
+            raise falcon.HTTPNotFound(description="model {} is not an available model in the API".format(model_name))
+        success = self.services.create_service(service_name, model)
+        if not success:
+            raise falcon.HTTP_CONFLICT()
 
         resp.body = json.dumps(list(self.services.models_online.keys()), ensure_ascii=False)
         resp.status = falcon.HTTP_201

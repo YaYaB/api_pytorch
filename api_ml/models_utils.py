@@ -37,7 +37,7 @@ class ListAvailableModels(Origin):
         self.services = services
         self.methods_allowed = ["GET"]
 
-    def validate_json(self, req):
+    def validate_json_input(self, req):
         call_params = {
         }
 
@@ -58,7 +58,7 @@ class ListAvailableModels(Origin):
         return json_input
 
     def on_get(self, req, resp):
-        _ = self.validate_json(req)
+        _ = self.validate_json_input(req)
         resp.body = json.dumps({"title": "success", "description": self.services.models_available}, ensure_ascii=False)
         resp.content_type = falcon.MEDIA_JSON
         resp.status = falcon.HTTP_200
@@ -70,7 +70,7 @@ class ListOnlineModels(Origin):
         self.services = services
         self.methods_allowed = ["GET"]
 
-    def validate_json(self, req):
+    def validate_json_input(self, req):
         call_params = {
         }
 
@@ -91,8 +91,8 @@ class ListOnlineModels(Origin):
         return json_input
 
     def on_get(self, req, resp):
-        _ = self.validate_json(req)
-        online_models = {x: {y: self.services.models_online[x][y] for y in self.services.models_online[x] if y != "model"} for x in self.services.models_online}        
+        _ = self.validate_json_input(req)
+        online_models = [{x: {y: self.services.models_online[x][y] for y in self.services.models_online[x] if y != "model"}} for x in self.services.models_online]
         resp.body = json.dumps({"title": "success", "description": online_models if online_models != {} else "no models are online"}, ensure_ascii=False)
         resp.content_type = falcon.MEDIA_JSON
         resp.status = falcon.HTTP_200
@@ -104,7 +104,7 @@ class LoadModel(Origin):
         self.services = services
         self.methods_allowed = ["PUT"]
 
-    def validate_load_model(self, req):
+    def validate_json_input(self, req):
         call_params = {
             "top_k": {
                 "name": "top_k",
@@ -158,7 +158,7 @@ class LoadModel(Origin):
         return json_input
 
     def on_put(self, req, resp):
-        json_input = self.validate_load_model(req)
+        json_input = self.validate_json_input(req)
         model_name = json_input["model_name"]
         service_name = json_input["service_name"]
 
@@ -182,7 +182,7 @@ class DeleteModel(Origin):
         self.services = services
         self.methods_allowed = ["DELETE"]
 
-    def validate_delete_service(self, req):
+    def validate_json_input(self, req):
         call_params = {
             "service_name": {
                 "name": "service_name",
@@ -209,7 +209,7 @@ class DeleteModel(Origin):
         return json_input
 
     def on_delete(self, req, resp):
-        json_input = self.validate_delete_service(req)
+        json_input = self.validate_json_input(req)
         service_name = json_input["service_name"]
 
         # Check if service exists
@@ -227,7 +227,7 @@ class Predict(Origin):
         self.services = services
         self.methods_allowed = ["POST"]
 
-    def validate_predict_input(self, req):
+    def validate_json_input(self, req):
         call_params = {
             "service_name": {
                 "name": "service_name",
@@ -287,7 +287,7 @@ class Predict(Origin):
         return res
 
     def on_post(self, req, resp):
-        json_input = self.validate_predict_input(req)
+        json_input = self.validate_json_input(req)
         # Parse json
         service_name = json_input["service_name"]
         urls_image = json_input["data"]

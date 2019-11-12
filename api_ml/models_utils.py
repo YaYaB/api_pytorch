@@ -71,13 +71,15 @@ class ListOnlineModels(Origin):
         self.methods_allowed = ["GET"]
 
     def on_get(self, req, resp):
-        online_models = {x: self.services.models_available[x] for x in self.services.models_online}
+        #online_models = {x: self.services.models_available[x] for x in self.services.models_online}
+        online_models = {x: {y: self.services.models_online[x][y] for y in self.services.models_online[x] if y != "model"} for x in self.services.models_online}        
         resp.body = json.dumps(online_models, ensure_ascii=False)
         resp.content_type = falcon.MEDIA_JSON
 
         resp.status = falcon.HTTP_200
 
 
+# TODO add other (batch_size, type of data, top k returns)
 class LoadModel(Origin):
     def __init__(self, services):
         Origin.__init__(self)
@@ -106,7 +108,7 @@ class LoadModel(Origin):
         print(model)
         if model is False:
             raise falcon.HTTPNotFound(description="model {} is not an available model in the API".format(model_name))
-        success = self.services.create_service(service_name, model)
+        success = self.services.create_service(service_name, model_name, model)
         if not success:
             raise falcon.HTTP_CONFLICT()
 
@@ -208,7 +210,7 @@ class Predict(Origin):
         if service_name not in self.services.models_online:
             raise falcon.HTTPNotFound(description="Service does not seem to exist")
         else:
-            model = self.services.models_online[service_name]
+            model = self.services.models_online[service_name]['model']
             predictions = []
             for batch in batchify(urls_image, 20):
                 i = 0

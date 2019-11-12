@@ -6,9 +6,12 @@ class Services(object):
         self.models_available = model_to_repository
         self.models_online = {}
 
-    def create_service(self, name, model):
+    def create_service(self, name, model_name, model):
         if name not in self.models_online:
-            self.models_online[name] = model
+            self.models_online[name] = {
+                "model_name": model_name,
+                "model": model
+            }
             return True
         else:
             # Service already existing

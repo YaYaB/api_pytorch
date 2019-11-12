@@ -9,7 +9,7 @@ def list_routes(roots, parent=''):
             elem = [parent + '/' + root.raw_segment]
 
         if root.children:
-            return elem + list_routes(root.children, parent + '/' + root.raw_segment, verbose)
+            return elem + list_routes(root.children, parent + '/' + root.raw_segment)
         else:
             elems += elem
     return elems

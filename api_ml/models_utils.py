@@ -38,24 +38,15 @@ class ListAvailableModels(Origin):
         self.methods_allowed = ["GET"]
 
     def validate_json_input(self, req):
-        call_params = {
-        }
+        input_read = req.bounded_stream.read()
+        if input_read == b'':
+            return
 
-        try:
-            json_input = json.load(req.bounded_stream)
-        except json.decoder.JSONDecodeError:
-            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+        json_input = json.loads(input_read)
+        if json_input != {}:
+            raise falcon.HTTPBadRequest('Bad request', "Json must be empty")
 
-        success, message = check_json(json_input, call_params)
-        if not success:
-            raise falcon.HTTPBadRequest('Bad request', message)
-
-        fields_needed = set(call_params.keys())
-        if not set(json_input.keys()).issubset(fields_needed):
-            msg = "{} are the only possible inputs.".format(fields_needed)
-            raise falcon.HTTPBadRequest('Bad request', msg)
-
-        return json_input
+        return
 
     def on_get(self, req, resp):
         _ = self.validate_json_input(req)
@@ -71,24 +62,15 @@ class ListOnlineModels(Origin):
         self.methods_allowed = ["GET"]
 
     def validate_json_input(self, req):
-        call_params = {
-        }
+        input_read = req.bounded_stream.read()
+        if input_read == b'':
+            return
 
-        try:
-            json_input = json.load(req.bounded_stream)
-        except json.decoder.JSONDecodeError:
-            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+        json_input = json.loads(input_read)
+        if json_input != {}:
+            raise falcon.HTTPBadRequest('Bad request', "Json must be empty")
 
-        success, message = check_json(json_input, call_params)
-        if not success:
-            raise falcon.HTTPBadRequest('Bad request', message)
-
-        fields_needed = set(call_params.keys())
-        if not set(json_input.keys()).issubset(fields_needed):
-            msg = "{} are the only possible inputs.".format(fields_needed)
-            raise falcon.HTTPBadRequest('Bad request', msg)
-
-        return json_input
+        return
 
     def on_get(self, req, resp):
         _ = self.validate_json_input(req)

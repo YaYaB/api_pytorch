@@ -21,5 +21,4 @@ def create_app():
 
 
 def get_app():
-    # storage_path = os.environ.get("LOOK_STORAGE_PATH", ".")
     return create_app()

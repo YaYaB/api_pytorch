@@ -6,28 +6,8 @@ import falcon
 import json
 
 from api_ml.models.utils import load_model, batchify
+from api_ml.utils import check_json
 import torch
-
-
-ALLOWED_IMAGE_TYPES = (
-    'image/gif',
-    'image/jpeg',
-    'image/png',
-)
-
-
-def validate_image_type(req, resp, resource, params):
-    if req.content_type not in ALLOWED_IMAGE_TYPES:
-        msg = 'Image type not allowed. Must be PNG, JPEG, or GIF'
-        raise falcon.HTTPBadRequest('Bad request', msg)
-
-
-def extract_project_id(req, resp, resource, params):
-    """Adds `project_id` to the list of params for all responders.
-
-    Meant to be used as a `before` hook.
-    """
-    params['project_id'] = req.get_header('X-PROJECT-ID')
 
 
 # Create class Origin that raises HTTPMethodNotAllowed
@@ -57,10 +37,30 @@ class ListAvailableModels(Origin):
         self.services = services
         self.methods_allowed = ["GET"]
 
-    def on_get(self, req, resp):
-        resp.body = json.dumps(self.services.models_available, ensure_ascii=False)
-        resp.content_type = falcon.MEDIA_JSON
+    def validate_json(self, req):
+        call_params = {
+        }
 
+        try:
+            json_input = json.load(req.bounded_stream)
+        except json.decoder.JSONDecodeError:
+            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+
+        success, message = check_json(json_input, call_params)
+        if not success:
+            raise falcon.HTTPBadRequest('Bad request', message)
+
+        fields_needed = set(call_params.keys())
+        if not set(json_input.keys()).issubset(fields_needed):
+            msg = "{} are the only possible inputs.".format(fields_needed)
+            raise falcon.HTTPBadRequest('Bad request', msg)
+
+        return json_input
+
+    def on_get(self, req, resp):
+        _ = self.validate_json(req)
+        resp.body = json.dumps({"title": "success", "description": self.services.models_available}, ensure_ascii=False)
+        resp.content_type = falcon.MEDIA_JSON
         resp.status = falcon.HTTP_200
 
 
@@ -70,16 +70,34 @@ class ListOnlineModels(Origin):
         self.services = services
         self.methods_allowed = ["GET"]
 
-    def on_get(self, req, resp):
-        #online_models = {x: self.services.models_available[x] for x in self.services.models_online}
-        online_models = {x: {y: self.services.models_online[x][y] for y in self.services.models_online[x] if y != "model"} for x in self.services.models_online}        
-        resp.body = json.dumps(online_models, ensure_ascii=False)
-        resp.content_type = falcon.MEDIA_JSON
+    def validate_json(self, req):
+        call_params = {
+        }
 
+        try:
+            json_input = json.load(req.bounded_stream)
+        except json.decoder.JSONDecodeError:
+            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+
+        success, message = check_json(json_input, call_params)
+        if not success:
+            raise falcon.HTTPBadRequest('Bad request', message)
+
+        fields_needed = set(call_params.keys())
+        if not set(json_input.keys()).issubset(fields_needed):
+            msg = "{} are the only possible inputs.".format(fields_needed)
+            raise falcon.HTTPBadRequest('Bad request', msg)
+
+        return json_input
+
+    def on_get(self, req, resp):
+        _ = self.validate_json(req)
+        online_models = {x: {y: self.services.models_online[x][y] for y in self.services.models_online[x] if y != "model"} for x in self.services.models_online}        
+        resp.body = json.dumps({"title": "success", "description": online_models if online_models != {} else "no models are online"}, ensure_ascii=False)
+        resp.content_type = falcon.MEDIA_JSON
         resp.status = falcon.HTTP_200
 
 
-# TODO add other (batch_size, type of data, top k returns)
 class LoadModel(Origin):
     def __init__(self, services):
         Origin.__init__(self)
@@ -87,13 +105,54 @@ class LoadModel(Origin):
         self.methods_allowed = ["PUT"]
 
     def validate_load_model(self, req):
-        fields_needed = set(['model_name', 'service_name'])
+        call_params = {
+            "top_k": {
+                "name": "top_k",
+                "type": int,
+                "mandatory": False,
+                "specific_check": {"superior": lambda x: x == -1 or x > 0},
+                "messages": {"none": "Please specify the top_k results wanted.", "type": "top_k must be an integer larger than 1 (or -1 to get all results)."}
+            },
+            "batch_size": {
+                "name": "batch_size",
+                "type": int,
+                "mandatory": False,
+                "specific_check": {"superior": lambda x: x > 0},
+                "messages": {"none": "Please specify the batch_size to used.", "type": "batch_size must be an integer larger than 1."}
+            },
+            "service_name": {
+                "name": "service_name",
+                "type": str,
+                "mandatory": True,
+                "messages": {"none": "Please specify a service_name.", "type": "service_name must be a string."}
+            },
+            "model_name": {
+                "name": "model_name",
+                "type": str,
+                "mandatory": True,
+                "messages": {"none": "Please specify a model_name.", "type": "model_name must be a string."}
+            },
+            "type": {
+                "name": "type",
+                "type": str,
+                "mandatory": True,
+                "enum": ["image", "text"],
+                "messages": {"none": "Please specify a type.", "type": "type must be an string between the following ('text', 'image')."}
+            }
+        }
+
         try:
             json_input = json.load(req.bounded_stream)
         except json.decoder.JSONDecodeError:
             raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
-        if fields_needed != set(json_input.keys()):
-            msg = "'model_name' and 'service_name' are the only input needed."
+
+        success, message = check_json(json_input, call_params)
+        if not success:
+            raise falcon.HTTPBadRequest('Bad request', message)
+
+        fields_needed = set(call_params.keys())
+        if not set(json_input.keys()).issubset(fields_needed):
+            msg = "{} are the only possible inputs.".format(fields_needed)
             raise falcon.HTTPBadRequest('Bad request', msg)
 
         return json_input
@@ -105,14 +164,15 @@ class LoadModel(Origin):
 
         # Load model
         model = load_model(model_name)
-        print(model)
         if model is False:
             raise falcon.HTTPNotFound(description="model {} is not an available model in the API".format(model_name))
-        success = self.services.create_service(service_name, model_name, model)
-        if not success:
-            raise falcon.HTTP_CONFLICT()
 
-        resp.body = json.dumps(list(self.services.models_online.keys()), ensure_ascii=False)
+        # Check if the service exists
+        success = self.services.create_service(json_input, model)
+        if not success:
+            raise falcon.HTTPConflict("Conflict", "The service '{}' already exists".format(service_name))
+
+        resp.body = json.dumps({"title": "sucess", "description": "service '{}' sucessfully created".format(service_name)}, ensure_ascii=False)
         resp.status = falcon.HTTP_201
 
 
@@ -123,14 +183,27 @@ class DeleteModel(Origin):
         self.methods_allowed = ["DELETE"]
 
     def validate_delete_service(self, req):
-        fields_needed = set(['service_name'])
+        call_params = {
+            "service_name": {
+                "name": "service_name",
+                "type": str,
+                "mandatory": True,
+                "messages": {"none": "Please specify a service_name to delete.", "type": "service_name must be a string."}
+            }
+        }
+
         try:
             json_input = json.load(req.bounded_stream)
         except json.decoder.JSONDecodeError:
-            # TODO add logging
             raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
-        if fields_needed != set(json_input.keys()):
-            msg = "'service_name' is the only input needed."
+
+        success, message = check_json(json_input, call_params)
+        if not success:
+            raise falcon.HTTPBadRequest('Bad request', message)
+
+        fields_needed = set(call_params.keys())
+        if not set(json_input.keys()).issubset(fields_needed):
+            msg = "{} are the only possible inputs.".format(fields_needed)
             raise falcon.HTTPBadRequest('Bad request', msg)
 
         return json_input
@@ -138,16 +211,13 @@ class DeleteModel(Origin):
     def on_delete(self, req, resp):
         json_input = self.validate_delete_service(req)
         service_name = json_input["service_name"]
-        try:
-            success = self.services.delete_service(service_name)
-            if not success:
-                raise falcon.HTTPNotFound(description="Service does not seem to exist")
-        except IOError:
-            # TODO add logging
-            raise falcon.HTTPNotFound()
 
-        print(self.services.models_online)
-        # TODO add messageindicating success
+        # Check if service exists
+        success = self.services.delete_service(service_name)
+        if not success:
+            raise falcon.HTTPNotFound(description="Service does not seem to exist")
+
+        resp.body = json.dumps({"title": "sucess", "description": "service '{}' sucessfully deleted".format(service_name)})
         resp.status = falcon.HTTP_201
 
 
@@ -158,24 +228,39 @@ class Predict(Origin):
         self.methods_allowed = ["POST"]
 
     def validate_predict_input(self, req):
-        fields_needed = set(['service_name', 'urls_image'])
+        call_params = {
+            "service_name": {
+                "name": "service_name",
+                "type": str,
+                "mandatory": True,
+                "messages": {"none": "Please specify a service_name.", "type": "service_name must be a string."}
+            },
+            "data": {
+                "name": "data",
+                "type": list,
+                "mandatory": True,
+                "specific_check": {"array_strings": lambda x: all([isinstance(y, str) for y in x])},
+                "messages": {"none": "Please specify the field data.", "type": "data must be an array of strings."}
+            }
+        }
+
         try:
             json_input = json.load(req.bounded_stream)
         except json.decoder.JSONDecodeError:
-            # TODO add logging
             raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
-        if fields_needed != set(json_input.keys()):
-            msg = "'service_name' and 'urls_image' are the only input needed."
-            raise falcon.HTTPBadRequest('Bad request', msg)
 
-        if not isinstance(json_input['urls_image'], list):
-            raise falcon.HTTPBadRequest(
-                'Bad request',
-                "urls_image must be a list of urls")
+        success, message = check_json(json_input, call_params)
+        if not success:
+            raise falcon.HTTPBadRequest('Bad request', message)
+
+        fields_needed = set(call_params.keys())
+        if not set(json_input.keys()).issubset(fields_needed):
+            msg = "{} are the only possible inputs.".format(fields_needed)
+            raise falcon.HTTPBadRequest('Bad request', msg)
 
         return json_input
 
-    def predict(self, model, input, topk=10):
+    def predict(self, model, input, top_k=-1):
         # create mini batch
         input_batch = tuple(model['preprocessing'](x).unsqueeze(0) for x in input)
         input_batch = torch.cat(input_batch, 0)
@@ -188,8 +273,10 @@ class Predict(Origin):
 
         # Sort prediction and get top wanted
         res = []
+        if top_k == -1:
+            top_k = predictions[0].shape[0]
         for pred in predictions:
-            topk_val, topk_indices = torch.topk(pred, topk)
+            topk_val, topk_indices = torch.topk(pred, top_k)
             if model["mapping"] is None:
                 res.append({x.item(): y.item() for x, y in zip(topk_indices, topk_val)})
             else:
@@ -199,20 +286,21 @@ class Predict(Origin):
 
         return res
 
-    #@falcon.before(validate_image_type)
     def on_post(self, req, resp):
         json_input = self.validate_predict_input(req)
         # Parse json
         service_name = json_input["service_name"]
-        urls_image = json_input["urls_image"]
+        urls_image = json_input["data"]
 
         # Check if service exists
         if service_name not in self.services.models_online:
             raise falcon.HTTPNotFound(description="Service does not seem to exist")
         else:
             model = self.services.models_online[service_name]['model']
+            batch_size = self.services.models_online[service_name].get("batch_size", 1)
+            top_k = self.services.models_online[service_name].get("top_k", -1)
             predictions = []
-            for batch in batchify(urls_image, 20):
+            for batch in batchify(urls_image, batch_size):
                 i = 0
                 id_pred_to_res = {}
                 imgs = []
@@ -237,7 +325,7 @@ class Predict(Origin):
 
                 # Make predictions
                 if len(imgs) > 0:
-                    prediction = self.predict(model, imgs)
+                    prediction = self.predict(model, imgs, top_k=top_k)
 
                     # Format output
                     for j, pred in enumerate(prediction):

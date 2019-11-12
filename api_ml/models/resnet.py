@@ -7,9 +7,9 @@ def load_model(model_name):
     model_ = {
         'resnet18': vision_models.resnet18,
         'resnet34': vision_models.resnet34,
-        'resnet50': vision_models.squeresnet50ezenet1_0,
+        'resnet50': vision_models.resnet50,
         'resnet101': vision_models.resnet101,
-        'resnet152': vision_models.squresnet152eezenet1_0,
+        'resnet152': vision_models.resnet152,
         'resnext50_32x4d': vision_models.resnext50_32x4d,
         'resnext101_32x8d': vision_models.resnext101_32x8d,
         'wide_resnet50_2': vision_models.wide_resnet50_2,

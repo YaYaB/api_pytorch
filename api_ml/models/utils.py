@@ -2,9 +2,6 @@ import api_ml.models as models
 
 
 def load_model(name_model, weights=None):
-    if name_model == "resnet18":
-        return models.resnet18.load_model()
-
     if name_model == "alexnet":
         return models.alexnet.load_model()
 

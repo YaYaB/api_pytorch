@@ -44,13 +44,13 @@ class ListAvailableModels(Origin):
 
         json_input = json.loads(input_read)
         if json_input != {}:
-            raise falcon.HTTPBadRequest('Bad request', "Json must be empty")
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, "Json must be empty")
 
         return
 
     def on_get(self, req, resp):
         _ = self.validate_json_input(req)
-        resp.body = json.dumps({"title": "success", "description": self.services.models_available}, ensure_ascii=False)
+        resp.body = json.dumps({"title": {"code": 200, "name": "Success"}, "description": self.services.models_available}, ensure_ascii=False)
         resp.content_type = falcon.MEDIA_JSON
         resp.status = falcon.HTTP_200
 
@@ -68,14 +68,14 @@ class ListOnlineModels(Origin):
 
         json_input = json.loads(input_read)
         if json_input != {}:
-            raise falcon.HTTPBadRequest('Bad request', "Json must be empty")
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, "Json must be empty")
 
         return
 
     def on_get(self, req, resp):
         _ = self.validate_json_input(req)
         online_models = [{x: {y: self.services.models_online[x][y] for y in self.services.models_online[x] if y != "model"}} for x in self.services.models_online]
-        resp.body = json.dumps({"title": "success", "description": online_models if online_models != {} else "no models are online"}, ensure_ascii=False)
+        resp.body = json.dumps({"title": {"code": 200, "name": "Success"}, "description": online_models if online_models != {} else "no models are online"}, ensure_ascii=False)
         resp.content_type = falcon.MEDIA_JSON
         resp.status = falcon.HTTP_200
 
@@ -126,16 +126,16 @@ class LoadModel(Origin):
         try:
             json_input = json.load(req.bounded_stream)
         except json.decoder.JSONDecodeError:
-            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, "Json seems malformed")
 
         success, message = check_json(json_input, call_params)
         if not success:
-            raise falcon.HTTPBadRequest('Bad request', message)
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, message)
 
         fields_needed = set(call_params.keys())
         if not set(json_input.keys()).issubset(fields_needed):
             msg = "{} are the only possible inputs.".format(fields_needed)
-            raise falcon.HTTPBadRequest('Bad request', msg)
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, msg)
 
         return json_input
 
@@ -152,9 +152,9 @@ class LoadModel(Origin):
         # Check if the service exists
         success = self.services.create_service(json_input, model)
         if not success:
-            raise falcon.HTTPConflict("Conflict", "The service '{}' already exists".format(service_name))
+            raise falcon.HTTPConflict({"code": 409, "name": "Bad request"}, "The service '{}' already exists".format(service_name))
 
-        resp.body = json.dumps({"title": "sucess", "description": "service '{}' sucessfully created".format(service_name)}, ensure_ascii=False)
+        resp.body = json.dumps({"title": {"code": 201, "name": "Success"}, "description": "service '{}' sucessfully created".format(service_name)}, ensure_ascii=False)
         resp.status = falcon.HTTP_201
 
 
@@ -177,16 +177,16 @@ class DeleteModel(Origin):
         try:
             json_input = json.load(req.bounded_stream)
         except json.decoder.JSONDecodeError:
-            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, "Json seems malformed")
 
         success, message = check_json(json_input, call_params)
         if not success:
-            raise falcon.HTTPBadRequest('Bad request', message)
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, message)
 
         fields_needed = set(call_params.keys())
         if not set(json_input.keys()).issubset(fields_needed):
             msg = "{} are the only possible inputs.".format(fields_needed)
-            raise falcon.HTTPBadRequest('Bad request', msg)
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, msg)
 
         return json_input
 
@@ -199,7 +199,7 @@ class DeleteModel(Origin):
         if not success:
             raise falcon.HTTPNotFound(description="Service does not seem to exist")
 
-        resp.body = json.dumps({"title": "sucess", "description": "service '{}' sucessfully deleted".format(service_name)})
+        resp.body = json.dumps({"title": {"code": 200, "name": "Success"}, "description": "service '{}' sucessfully deleted".format(service_name)})
         resp.status = falcon.HTTP_201
 
 
@@ -229,16 +229,16 @@ class Predict(Origin):
         try:
             json_input = json.load(req.bounded_stream)
         except json.decoder.JSONDecodeError:
-            raise falcon.HTTPBadRequest('Bad request', "Json seems malformed")
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, "Json seems malformed")
 
         success, message = check_json(json_input, call_params)
         if not success:
-            raise falcon.HTTPBadRequest('Bad request', message)
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, message)
 
         fields_needed = set(call_params.keys())
         if not set(json_input.keys()).issubset(fields_needed):
             msg = "{} are the only possible inputs.".format(fields_needed)
-            raise falcon.HTTPBadRequest('Bad request', msg)
+            raise falcon.HTTPBadRequest({"code": 400, "name": "Bad request"}, msg)
 
         return json_input
 
@@ -315,5 +315,5 @@ class Predict(Origin):
 
                 predictions.append(res)
 
-            resp.body = json.dumps(predictions, ensure_ascii=False)
+            resp.body = json.dumps({"title": {"code": 200, "name": "Success"}, "description": predictions}, ensure_ascii=False)
             resp.status = falcon.HTTP_201
